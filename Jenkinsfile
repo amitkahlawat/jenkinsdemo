@@ -1,9 +1,11 @@
 pipeline {
   agent any
 
-environment {
-  PATH = "/Users/akahlawa/.rd/bin:/usr/local/bin:/usr/bin:/bin:/usr/sbin:/sbin"
-}
+  environment {
+    PATH = "/Users/akahlawa/.rd/bin:/usr/local/bin:/usr/bin:/bin:/usr/sbin:/sbin"
+    DEPLOY_DIR = "/Users/akahlawa/Documents/jenkins-deployments"
+  }
+
   stages {
     stage('Environment check') {
       steps {
@@ -18,41 +20,51 @@ environment {
       }
     }
 
+    stage('Set release identity') {
+      steps {
+        script {
+          def branch = env.BRANCH_NAME ?: 'main'
+          def safeBranch = branch.replaceAll('[^A-Za-z0-9_.-]', '-')
+
+          env.IMAGE_TAG = "jenkins-python-demo:${safeBranch}-${env.BUILD_NUMBER}"
+          env.IMAGE_ARCHIVE = "jenkins-python-demo-${safeBranch}-${env.BUILD_NUMBER}.tar"
+        }
+
+        sh 'echo "Building image: $IMAGE_TAG"'
+      }
+    }
+
     stage('Docker build') {
       steps {
-        sh 'docker build -t jenkins-python-demo:${BUILD_NUMBER} .'
+        sh 'docker build -t "$IMAGE_TAG" .'
       }
     }
 
     stage('Docker test') {
       steps {
-        sh 'docker run --rm jenkins-python-demo:${BUILD_NUMBER}'
+        sh 'docker run --rm "$IMAGE_TAG"'
       }
     }
-    stage('Export Docker image') {
-  steps {
-    sh 'docker save jenkins-python-demo:${BUILD_NUMBER} -o jenkins-python-demo-${BUILD_NUMBER}.tar'
-    archiveArtifacts artifacts: 'jenkins-python-demo-*.tar', fingerprint: true
-  }
-}
 
-stage('Mock deploy') {
-  environment {
-    DEPLOY_DIR = '/Users/akahlawa/Documents/jenkins-deployments'
-  }
-  steps {
-    sh '''
-      mkdir -p "$DEPLOY_DIR"
-      cp "jenkins-python-demo-${BUILD_NUMBER}.tar" "$DEPLOY_DIR/"
-      printf 'build=%s\nimage=jenkins-python-demo:%s\n' "$BUILD_NUMBER" "$BUILD_NUMBER" \
-        > "$DEPLOY_DIR/latest.txt"
-    '''
-  }
-}
-    stage('Package') {
+    stage('Export Docker image') {
       steps {
-        sh 'tar -czf python-app-${BUILD_NUMBER}.tar.gz app.py test_app.py Dockerfile'
-        archiveArtifacts artifacts: '*.tar.gz', fingerprint: true
+        sh 'docker save "$IMAGE_TAG" -o "$IMAGE_ARCHIVE"'
+        archiveArtifacts artifacts: 'jenkins-python-demo-*.tar', fingerprint: true
+      }
+    }
+
+    stage('Mock deploy') {
+      when {
+        expression { !env.BRANCH_NAME || env.BRANCH_NAME == 'main' }
+      }
+      steps {
+        sh '''
+          mkdir -p "$DEPLOY_DIR"
+          cp "$IMAGE_ARCHIVE" "$DEPLOY_DIR/"
+          printf 'branch=%s\nbuild=%s\nimage=%s\n' \
+            "${BRANCH_NAME:-main}" "$BUILD_NUMBER" "$IMAGE_TAG" \
+            > "$DEPLOY_DIR/latest.txt"
+        '''
       }
     }
   }
