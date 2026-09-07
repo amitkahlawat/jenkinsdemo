@@ -1,6 +1,19 @@
 pipeline {
   agent any
 
+parameters {
+  choice(
+    name: 'DEPLOY_ENV',
+    choices: ['dev', 'test'],
+    description: 'Choose the local mock deployment environment'
+  )
+
+  booleanParam(
+    name: 'DEPLOY_ENABLED',
+    defaultValue: true,
+    description: 'Deploy after approval'
+  )
+}
   environment {
     PATH = "/Users/akahlawa/.rd/bin:/usr/local/bin:/usr/bin:/bin:/usr/sbin:/sbin"
     DEPLOY_DIR = "/Users/akahlawa/Documents/jenkins-deployments"
@@ -93,19 +106,26 @@ stage('Docker health check') {
     }
   }
 }
-    stage('Mock deploy') {
-      when {
-        expression { !env.BRANCH_NAME || env.BRANCH_NAME == 'main' }
-      }
-      steps {
-        sh '''
-          mkdir -p "$DEPLOY_DIR"
-          cp "$IMAGE_ARCHIVE" "$DEPLOY_DIR/"
-          printf 'branch=%s\nbuild=%s\nimage=%s\n' \
-            "${BRANCH_NAME:-main}" "$BUILD_NUMBER" "$IMAGE_TAG" \
-            > "$DEPLOY_DIR/latest.txt"
-        '''
-      }
+stage('Mock deploy') {
+  when {
+    allOf {
+      expression { !env.BRANCH_NAME || env.BRANCH_NAME == 'main' }
+      expression { params.DEPLOY_ENABLED }
     }
+  }
+
+  steps {
+    sh '''
+      DEPLOY_DIR="/Users/akahlawa/Documents/jenkins-deployments/${DEPLOY_ENV}"
+
+      mkdir -p "$DEPLOY_DIR"
+      cp "$IMAGE_ARCHIVE" "$DEPLOY_DIR/"
+
+      printf 'environment=%s\nbranch=%s\nbuild=%s\nimage=%s\n' \
+        "$DEPLOY_ENV" "${BRANCH_NAME:-main}" "$BUILD_NUMBER" "$IMAGE_TAG" \
+        > "$DEPLOY_DIR/latest.txt"
+    '''
+  }
+}
   }
 }
