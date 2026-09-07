@@ -115,16 +115,17 @@ stage('Mock deploy') {
   }
 
   steps {
-    sh '''
-      DEPLOY_DIR="/Users/akahlawa/Documents/jenkins-deployments/${DEPLOY_ENV}"
+sh '''
+  DEPLOY_ENV="${DEPLOY_ENV:-dev}"
+  DEPLOY_DIR="/Users/akahlawa/Documents/jenkins-deployments/${DEPLOY_ENV}"
 
-      mkdir -p "$DEPLOY_DIR"
-      cp "$IMAGE_ARCHIVE" "$DEPLOY_DIR/"
+  mkdir -p "$DEPLOY_DIR"
+  cp "$IMAGE_ARCHIVE" "$DEPLOY_DIR/"
 
-      printf 'environment=%s\nbranch=%s\nbuild=%s\nimage=%s\n' \
-        "$DEPLOY_ENV" "${BRANCH_NAME:-main}" "$BUILD_NUMBER" "$IMAGE_TAG" \
-        > "$DEPLOY_DIR/latest.txt"
-    '''
+  printf 'environment=%s\nbranch=%s\nbuild=%s\nimage=%s\n' \
+    "$DEPLOY_ENV" "${BRANCH_NAME:-main}" "$BUILD_NUMBER" "$IMAGE_TAG" \
+    > "$DEPLOY_DIR/latest.txt"
+'''
   }
 }
   }
