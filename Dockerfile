@@ -2,6 +2,8 @@ FROM python:3.12-slim
 
 WORKDIR /app
 
-COPY app.py test_app.py ./
+COPY app.py test_app.py server.py ./
 
-CMD ["python3", "-m", "unittest", "-v", "test_app.py"]
+EXPOSE 8080
+
+CMD ["python3", "server.py"]
