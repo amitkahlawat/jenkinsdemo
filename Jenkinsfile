@@ -46,11 +46,33 @@ stage('Set release identity') {
       }
     }
 
-    stage('Docker test') {
-      steps {
-        sh 'docker run --rm "$IMAGE_TAG"'
-      }
+stage('Docker health check') {
+  steps {
+    sh '''
+      docker run -d --rm \
+        --name "jenkins-health-${BUILD_NUMBER}" \
+        -p 18080:8080 \
+        "$IMAGE_TAG"
+
+      for attempt in 1 2 3 4 5; do
+        if curl --fail --silent http://localhost:18080/health | grep -q '"status":"healthy"'; then
+          echo "Health check passed."
+          exit 0
+        fi
+        sleep 1
+      done
+
+      docker logs "jenkins-health-${BUILD_NUMBER}"
+      exit 1
+    '''
+  }
+
+  post {
+    always {
+      sh 'docker stop "jenkins-health-${BUILD_NUMBER}" || true'
     }
+  }
+}
 
     stage('Export Docker image') {
       steps {
