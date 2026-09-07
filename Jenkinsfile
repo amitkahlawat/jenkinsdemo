@@ -1,6 +1,9 @@
 pipeline {
   agent any
 
+environment {
+  PATH = "/Users/akahlawa/.rd/bin:/usr/local/bin:/usr/bin:/bin:/usr/sbin:/sbin"
+}
   stages {
     stage('Environment check') {
       steps {
