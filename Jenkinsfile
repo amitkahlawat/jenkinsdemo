@@ -58,7 +58,19 @@ stage('Set release identity') {
         archiveArtifacts artifacts: 'jenkins-python-demo-*.tar', fingerprint: true
       }
     }
-
+  stage('Approve mock deployment') {
+  when {
+    expression { !env.BRANCH_NAME || env.BRANCH_NAME == 'main' }
+  }
+  steps {
+    timeout(time: 10, unit: 'MINUTES') {
+      input(
+        message: "Deploy ${IMAGE_TAG} to the local mock environment?",
+        ok: 'Approve deployment'
+      )
+    }
+  }
+}
     stage('Mock deploy') {
       when {
         expression { !env.BRANCH_NAME || env.BRANCH_NAME == 'main' }
