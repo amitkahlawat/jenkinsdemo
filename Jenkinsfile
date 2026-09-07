@@ -20,19 +20,25 @@ pipeline {
       }
     }
 
-    stage('Set release identity') {
-      steps {
-        script {
-          def branch = env.BRANCH_NAME ?: 'main'
-          def safeBranch = branch.replaceAll('[^A-Za-z0-9_.-]', '-')
+stage('Set release identity') {
+  steps {
+    sh 'git fetch --tags --force'
 
-          env.IMAGE_TAG = "jenkins-python-demo:${safeBranch}-${env.BUILD_NUMBER}"
-          env.IMAGE_ARCHIVE = "jenkins-python-demo-${safeBranch}-${env.BUILD_NUMBER}.tar"
-        }
+    script {
+      def branch = env.BRANCH_NAME ?: 'main'
+      def safeBranch = branch.replaceAll('[^A-Za-z0-9_.-]', '-')
+      def version = sh(
+        script: 'git describe --tags --abbrev=0',
+        returnStdout: true
+      ).trim()
 
-        sh 'echo "Building image: $IMAGE_TAG"'
-      }
+      env.IMAGE_TAG = "jenkins-python-demo:${safeBranch}-${version}-${env.BUILD_NUMBER}"
+      env.IMAGE_ARCHIVE = "jenkins-python-demo-${safeBranch}-${version}-${env.BUILD_NUMBER}.tar"
     }
+
+    sh 'echo "Building release image: $IMAGE_TAG"'
+  }
+}
 
     stage('Docker build') {
       steps {
