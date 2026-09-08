@@ -14,7 +14,7 @@ spec:
     spec:
       containers:
         - name: app
-          image: jenkins-python-demo:main-v1.0.1-22
+          image: jenkins-python-demo:main-v1.0.1-24
           imagePullPolicy: Never
           ports:
             - containerPort: 8080
