@@ -3,7 +3,7 @@ kind: Deployment
 metadata:
   name: jenkins-python-demo
 spec:
-  replicas: 1
+  replicas: 2
   selector:
     matchLabels:
       app: jenkins-python-demo
