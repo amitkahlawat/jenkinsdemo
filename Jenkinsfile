@@ -37,13 +37,26 @@ parameters {
         sh 'docker version'
       }
     }
+stage('Set up test environment') {
+  steps {
+    sh '''
+      python3 -m venv .venv
+      .venv/bin/python -m pip install --upgrade pip
+      .venv/bin/python -m pip install -r requirements-dev.txt
+    '''
+  }
+}
+stage('Python unit test') {
+  steps {
+    sh '.venv/bin/python -m pytest -q --junitxml=test-results.xml'
+  }
 
-    stage('Python unit test') {
-      steps {
-        sh 'python3 -m unittest -v test_app.py'
-      }
+  post {
+    always {
+      junit allowEmptyResults: true, testResults: 'test-results.xml'
     }
-
+  }
+}
 stage('Set release identity') {
   steps {
     sh 'git fetch --tags --force'
