@@ -4,6 +4,12 @@ pipeline {
 options {
   timestamps()
   disableConcurrentBuilds()
+buildDiscarder(
+  logRotator(
+    numToKeepStr: '10',
+    artifactNumToKeepStr: '5'
+  )
+)
 }
 
 parameters {
