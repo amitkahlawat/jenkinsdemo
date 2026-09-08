@@ -15,3 +15,4 @@ class HealthHandler(BaseHTTPRequestHandler):
         pass
 
 HTTPServer(("0.0.0.0", 8080), HealthHandler).serve_forever()
+# Release v1.0.1
