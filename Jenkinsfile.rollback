@@ -1,0 +1,82 @@
+pipeline {
+  agent any
+
+  environment {
+    PATH = "/Users/akahlawa/.rd/bin:/usr/local/bin:/usr/bin:/bin:/usr/sbin:/sbin"
+  }
+
+  parameters {
+    choice(
+      name: 'TARGET_ENV',
+      choices: ['dev', 'test'],
+      description: 'Environment to roll back'
+    )
+
+    string(
+      name: 'ROLLBACK_IMAGE',
+      defaultValue: '',
+      description: 'Previously validated image tag, for example jenkins-python-demo:main-v1.0.0-9'
+    )
+  }
+
+  stages {
+    stage('Validate rollback target') {
+      steps {
+        script {
+          if (!params.ROLLBACK_IMAGE?.trim()) {
+            error('ROLLBACK_IMAGE is required.')
+          }
+        }
+
+        sh '''
+          docker image inspect "$ROLLBACK_IMAGE" >/dev/null
+          docker run -d --rm \
+            --name "rollback-validation-${BUILD_NUMBER}" \
+            -p 18083:8080 \
+            "$ROLLBACK_IMAGE"
+
+          for attempt in 1 2 3 4 5; do
+            if curl --fail --silent http://localhost:18083/health | grep -q '"status":"healthy"'; then
+              echo "Rollback image is healthy: $ROLLBACK_IMAGE"
+              exit 0
+            fi
+            sleep 1
+          done
+
+          docker logs "rollback-validation-${BUILD_NUMBER}"
+          exit 1
+        '''
+      }
+
+      post {
+        always {
+          sh 'docker stop "rollback-validation-${BUILD_NUMBER}" || true'
+        }
+      }
+    }
+
+    stage('Approve rollback') {
+      steps {
+        timeout(time: 10, unit: 'MINUTES') {
+          input(
+            message: "Roll back ${TARGET_ENV} to ${ROLLBACK_IMAGE}?",
+            ok: 'Approve rollback'
+          )
+        }
+      }
+    }
+
+    stage('Update mock deployment') {
+      steps {
+        sh '''
+          DEPLOY_DIR="/Users/akahlawa/Documents/jenkins-deployments/${TARGET_ENV}"
+          mkdir -p "$DEPLOY_DIR"
+
+          printf 'environment=%s\nimage=%s\nrollback_jenkins_build=%s\n' \
+            "$TARGET_ENV" "$ROLLBACK_IMAGE" "$BUILD_NUMBER" \
+            > "$DEPLOY_DIR/latest.txt"
+        '''
+      }
+    }
+  }
+}
