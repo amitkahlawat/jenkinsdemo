@@ -1,6 +1,10 @@
 pipeline {
   agent any
 
+options {
+  timestamps()
+  disableConcurrentBuilds()
+}
 parameters {
   choice(
     name: 'DEPLOY_ENV',
