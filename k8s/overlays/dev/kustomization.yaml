@@ -9,4 +9,4 @@ resources:
 
 images:
   - name: jenkins-python-demo
-    newTag: main-v1.0.1-24
+    newTag: jenkins-python-demo:main-v1.0.1-27
