@@ -202,10 +202,10 @@ pipeline {
             git config user.email "jenkins-gitops@local"
 
             sed -E -i '' \
-              "s#^[[:space:]]*image: jenkins-python-demo:.*#          image: ${IMAGE_TAG}#" \
-              k8s/jenkins-python-demo.yaml
+              "s#^[[:space:]]*newTag: .*#    newTag: ${IMAGE_TAG}#" \
+k8s/overlays/dev/kustomization.yaml
 
-            git add k8s/jenkins-python-demo.yaml
+git add k8s/overlays/dev/kustomization.yaml
 
             if git diff --cached --quiet; then
               echo "GitOps manifest already uses ${IMAGE_TAG}."

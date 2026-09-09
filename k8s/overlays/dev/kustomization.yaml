@@ -1,0 +1,12 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+
+namespace: demo-dev
+
+resources:
+  - namespace.yaml
+  - ../../base
+
+images:
+  - name: jenkins-python-demo
+    newTag: main-v1.0.1-24
